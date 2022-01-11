@@ -1,87 +1,86 @@
 import { useEffect, useState } from "react";
 import "./App.css";
-import blueCandy from "./assets/img/blue-candy.png";
-import greenCandy from "./assets/img/green-candy.png";
-import orangeCandy from "./assets/img/orange-candy.png";
-import purpleCandy from "./assets/img/purple-candy.png";
-import redCandy from "./assets/img/red-candy.png";
-import yellowCandy from "./assets/img/yellow-candy.png";
 
-import { WIDTH, COMBO_MIN_THRESHOULD } from "./constants";
-
-const CANDY = [
-  blueCandy,
-  orangeCandy,
-  purpleCandy,
-  redCandy,
-  yellowCandy,
-  greenCandy,
-];
+const GRID_SIZE = 6;
+const CANDIES = ["red", "orange", "purple", "red", "yellow", "green"];
 
 function App() {
-  const [currentCandyArrangement, setCurrentCandyArrangement] = useState([]);
-
+  const [board, setBoard] = useState([]);
+  const [squareBeingDragged, setSquareBeingDragged] = useState(null);
+  const [squareBeingReplaced, setSquareBeingReplaced] = useState(null);
   const createBoard = () => {
-    const randomCandyArrangement = [];
-    for (let i = 0; i < WIDTH * WIDTH; i++) {
-      const randomCandy = CANDY[Math.floor(Math.random() * CANDY.length)];
-      randomCandyArrangement.push(randomCandy);
-    }
-    setCurrentCandyArrangement(randomCandyArrangement);
+    const initialBoard = Array.from({ length: GRID_SIZE }, () =>
+      Array.from(
+        { length: GRID_SIZE },
+        () => CANDIES[Math.floor(Math.random() * CANDIES.length)]
+      )
+    );
+    setBoard(initialBoard);
   };
-
-  const checkColumnCombo = () => {
-    for (let i = 0; i < WIDTH; i++) {
-      for (let j = WIDTH - COMBO_MIN_THRESHOULD; j < 0; j--) {
-        console.log("i - j ", { i, j });
-      }
-    }
-  };
-
-  const checkRowCombo = () => {
-    for (let i = 0; i < WIDTH; i++) {
-      for (let j = WIDTH - COMBO_MIN_THRESHOULD; j < 0; j--) {
-        console.log("i - j ", { i, j });
-      }
-    }
-  };
-
-  const dragStart = () => {};
-
-  const dragDrop = () => {};
-
-  const dragEnd = () => {};
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      checkColumnCombo();
-      setCurrentCandyArrangement([...currentCandyArrangement]);
-    }, 100);
-    return () => clearInterval(timer);
-  }, [currentCandyArrangement, checkColumnCombo]);
 
   useEffect(() => {
     createBoard();
   }, []);
 
+  const dragStart = (e) => {
+    setSquareBeingDragged(e.target.getAttribute("data-cell-info"));
+  };
+  const dragDrop = (e) => {
+    setSquareBeingReplaced(e.target.getAttribute("data-cell-info"));
+  };
+
+  const dragEnd = () => {
+    const [row, col] = squareBeingDragged.split("-").map((x) => parseInt(x));
+    const [rowToBeReplaced, colToBeReplaced] = squareBeingReplaced
+      .split("-")
+      .map((x) => parseInt(x));
+    const VALID_MOVES = [
+      [row, col - 1],
+      [row, col + 1],
+      [row + 1, col],
+      [row + 1, col],
+    ];
+    const isValidMove = VALID_MOVES.filter(
+      (move) => move[0] === rowToBeReplaced && move[1] === colToBeReplaced
+    );
+    if (isValidMove.length) {
+      const copy = [...board];
+      const temp = copy[row][col];
+      copy[row][col] = board[rowToBeReplaced][colToBeReplaced];
+      copy[rowToBeReplaced][colToBeReplaced] = temp;
+      setBoard(copy);
+    }
+  };
+
   return (
     <div className="app">
       <div className="game">
-        {currentCandyArrangement.map((candy, index) => (
-          <img
-            key={index}
-            src={candy}
-            alt={candy}
-            data-id={index}
-            draggable={true}
-            onDragStart={dragStart}
-            onDragOver={(e) => e.preventDefault()}
-            onDragEnter={(e) => e.preventDefault()}
-            onDragLeave={(e) => e.preventDefault()}
-            onDrop={dragDrop}
-            onDragEnd={dragEnd}
-          />
-        ))}
+        {board.map((row, rowIdx) => {
+          return (
+            <div style={{ display: "block" }} key={`row-${rowIdx}`}>
+              {row.map((cell, cellIdx) => (
+                <div
+                  key={`${rowIdx}-${cellIdx}`}
+                  data-cell-info={`${rowIdx}-${cellIdx}`}
+                  style={{
+                    height: 60,
+                    width: 60,
+                    backgroundColor: cell,
+                    display: "block",
+                    border: "1px solid",
+                  }}
+                  draggable
+                  onDragStart={dragStart}
+                  onDragOver={(e) => e.preventDefault()}
+                  onDragEnter={(e) => e.preventDefault()}
+                  onDragLeave={(e) => e.preventDefault()}
+                  onDrop={dragDrop}
+                  onDragEnd={dragEnd}
+                />
+              ))}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
